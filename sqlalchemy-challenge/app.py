@@ -1,0 +1,73 @@
+import datetime as dt
+import numpy as np
+import pandas as pd
+
+import sqlalchemy
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, func
+
+from flask import Flask, jsonify
+
+engine = create_engine("sqlite:///Resources/hawaii.sqlite")
+
+Base = automap_base()
+
+Base.prepare(engine, reflect=True)
+
+Measurement = Base.classes.measurement
+Station = Base.classes.station
+
+session = Session(engine)
+
+app = Flask(__name__)
+
+@app.route("/")
+def welcome():
+    return(
+           f"Welcome to the Kawai Hawaii Climate!<br/>"
+            f"Available Routes:<br/>"
+            f"/api/v1.0/precipitation<br/>"
+            f"/api/v1.0/tobs<br/>"
+            f"/api/v1.0/stations<br/>" 
+            
+    )
+
+@app.route("/api/v1.0/precipitation")
+
+def precipitation():
+
+    last_year = dt.date(2017, 8, 23) - dt.timedelta(days=365)
+
+    precipitation = session.query(Measurement.date, Measurement.prcp).filter(Measurement.date >= last_year).all()
+    result = {date: prcp for date, prcp in precipitation}
+
+    return jsonify(result)
+
+@app.route("/api/v1.0/stations")
+
+def stations():
+
+    results1 = session.query(Station.station)
+
+    stations1 = list(np.ravel(results))
+
+    return jsonify(stations1)
+
+
+
+@app.route("/api/v1.0/tobs")
+
+def monthly():
+
+    results2 = session.query(Measurement.tobs).filter(Measurement.station == 'USC00519281').filter(Measurement.date >= last_year).all()
+
+    temperatures = list(np.ravel(results2))
+
+    return jsonify(temperatures)
+
+
+
+
+if __name__ == '__main__':
+    app.run()
